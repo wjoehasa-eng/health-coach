@@ -274,6 +274,7 @@
   .sheet-back.on{opacity:1;visibility:visible;pointer-events:auto}
   .sheet{width:100%;max-width:480px;background:#fff;border-radius:22px 22px 0 0;
     padding:16px 18px calc(16px + env(safe-area-inset-bottom));
+    max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
     box-shadow:0 -8px 30px rgba(17,24,39,.2);transform:translateY(22px);transition:transform .2s ease}
   .sheet-back.on .sheet{transform:none}
   .sheet-h{display:flex;align-items:flex-start;gap:10px}
@@ -336,6 +337,40 @@
     padding:11px 16px;border-radius:14px;box-shadow:0 8px 24px rgba(17,24,39,.25);text-align:center;
     opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;z-index:900}
   #hcToast.on{opacity:1;transform:translate(-50%,0)}
+
+  /* ---------- 요약: 다음 운동 한 줄 처방 ---------- */
+  .coach{display:flex;align-items:center;gap:11px;margin-top:12px;padding:13px 15px;border-radius:18px;
+    background:linear-gradient(135deg,#EAF2FE 0%,#F6FAFF 100%);
+    box-shadow:0 1px 2px rgba(17,24,39,.045),0 0 0 1px rgba(49,130,246,.09)}
+  .coach .ci{width:34px;height:34px;flex:none;border-radius:11px;background:#fff;display:grid;place-items:center;
+    font-size:16px;line-height:1;box-shadow:0 1px 2px rgba(17,24,39,.07)}
+  .coach .cb{min-width:0}
+  .coach .ck{font-size:10px;font-weight:800;color:var(--blue-deep);letter-spacing:-.1px}
+  .coach .ct{font-size:13.5px;font-weight:800;letter-spacing:-.35px;line-height:1.42;margin-top:2px}
+  .coach .cm{font-size:10px;font-weight:700;color:var(--ink2);margin-top:3px;letter-spacing:-.1px}
+  .coach.warn{background:linear-gradient(135deg,#FFF6E6 0%,#FFFCF6 100%);
+    box-shadow:0 1px 2px rgba(17,24,39,.045),0 0 0 1px rgba(247,144,9,.16)}
+  .coach.warn .ck{color:#A96500}
+  .coach.done{background:linear-gradient(135deg,#E9FBF1 0%,#F7FEF9 100%);
+    box-shadow:0 1px 2px rgba(17,24,39,.045),0 0 0 1px rgba(18,183,106,.16)}
+  .coach.done .ck{color:#0E9F5E}
+
+  /* ---------- 데이터 설정: 스냅샷 목록 ---------- */
+  .snaps{margin-top:2px}
+  .snap{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:12px;background:#F7F8FA;margin-top:6px}
+  .snap .sd{min-width:0;flex:1}
+  .snap .sd b{font-size:11.5px;font-weight:800;display:block;letter-spacing:-.2px}
+  .snap .sd span{font-size:10px;color:var(--ink2);font-weight:700;display:block;margin-top:1px}
+  .snap button{border:0;font:inherit;font-size:10.5px;font-weight:800;color:var(--blue-deep);background:#fff;
+    border-radius:8px;padding:6px 9px;cursor:pointer;flex:none;box-shadow:0 1px 2px rgba(17,24,39,.07)}
+  .snaps .none{font-size:10.5px;color:var(--ink3);font-weight:700;margin-top:8px;line-height:1.6}
+
+  /* ---------- 줄어든 데이터 확인 패널 ---------- */
+  .gdbox{margin-top:12px;background:#FFF7E8;border:1px solid #FFE3B0;border-radius:14px;padding:12px 13px}
+  .gdbox .gl{font-size:11.5px;font-weight:800;color:#8A5300;line-height:1.55}
+  .gdbox .gc{display:flex;justify-content:space-between;gap:10px;font-size:11.5px;font-weight:800;color:#3E4858;margin-top:9px}
+  .gdbox .gc i{font-style:normal;color:var(--red)}
+  .gdbox .gn{font-size:10.5px;font-weight:700;color:#8A6A32;margin-top:10px;line-height:1.6}
 
   footer{text-align:center;font-size:10.5px;color:var(--ink3);line-height:1.8;padding:22px 24px 4px;font-weight:600}
 </style>
@@ -426,10 +461,31 @@
       <div class="strow">
         <button class="btn ghost" id="stExport">JSON 내려받기</button>
       </div>
+      <div class="stlbl">스냅샷 · 최근 5개(불러오기 전 자동 저장)</div>
       <div class="strow">
+        <button class="btn ghost" id="stSnap">지금 상태 스냅샷 저장</button>
+      </div>
+      <div class="snaps" id="stSnaps"></div>
+      <div class="strow" style="margin-top:12px">
         <button class="btn danger" id="stClear">이 기기의 데이터 지우기</button>
       </div>
       <div class="sts" id="stSts"></div>
+    </div>
+  </div>
+
+  <div class="sheet-back" id="gdSheet" aria-hidden="true">
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="gdTitle">
+      <div class="sheet-h">
+        <div>
+          <div class="sheet-t" id="gdTitle">기록이 줄어드는 데이터예요</div>
+          <div class="sheet-s">바꾸기 전에 지금 상태를 스냅샷으로 저장해요</div>
+        </div>
+      </div>
+      <div class="gdbox" id="gdBody"></div>
+      <div class="strow" style="margin-top:12px">
+        <button class="btn ghost" id="gdNo">취소</button>
+        <button class="btn danger" id="gdYes">그래도 불러오기</button>
+      </div>
     </div>
   </div>
 
@@ -817,6 +873,70 @@ function sigCard(cls, icon, title, badge, value, sub, goal, line){
   '</div>';
 }
 
+/* ---------- 다음 운동 한 줄 처방 ----------
+   기록에서 바로 계산합니다: 가벼움:힘든 비중(80:20), 이번 주 150분, 안정시 심박 추이, 마지막 운동일.
+   처방에 쓰는 심박 범위는 데이터의 심박존 설정(zoneSetting)을 그대로 씁니다. */
+function bt(z){ return (z && z[0] != null) ? (z[0] + "~" + (z[1] != null ? z[1] : "") + "bpm") : "존2"; }
+
+function nextTip(){
+  var z2 = D.zoneSetting.z2, z1 = D.zoneSetting.z1;
+  var z2t = bt(z2), z1t = bt(z1);
+  var now = D.resting.now, base = (D.resting.last7 != null ? D.resting.last7 : D.resting.avg);
+  var rise = (now != null && base != null) ? now - base : 0;
+  var last = A.length ? A[0].date : null;
+  var gap = last ? Math.round((TODAY - d2t(last)) / DAY) : null;
+  var wk = D.intensityThisWeek, goal = D.intensityGoal || GOAL;
+  var remain = Math.max(0, goal - wk);
+  var lowPct = D.zoneTotals.lowPct;
+  var highPct = (lowPct == null) ? 0 : 100 - lowPct;
+  var meta = [];
+  if (lowPct != null) meta.push("가벼운 " + lowPct + "% · 힘든 " + highPct + "%");
+  meta.push("이번 주 " + wk + "/" + goal + "분");
+  if (gap != null) meta.push(gap <= 0 ? "마지막 운동 오늘" : "마지막 운동 " + gap + "일 전");
+  meta = meta.join(" · ");
+
+  /* 1. 안정시 심박이 최근보다 올라 있으면 → 회복 우선 */
+  if (rise >= 5){
+    return { cls:"warn", ic:"🫀",
+      t:"안정시 심박 " + base + "→" + now + "bpm, 오늘은 존1 " + z1t + " 20분 산책만", m: meta };
+  }
+  /* 2. 5일 넘게 기록이 비었으면 → 짧게 다시 시작 */
+  if (gap != null && gap >= 5){
+    return { cls:"warn", ic:"🌱",
+      t: gap + "일 쉬었어요, 오늘은 존2 " + z2t + " 20분으로 다시 시작", m: meta };
+  }
+  /* 3. 이번 주 150분을 이미 채웠으면 → 가볍게 마무리 */
+  if (remain <= 0){
+    return { cls:"done", ic:"✅",
+      t:"이번 주 " + wk + "분 채웠어요, 오늘은 존2 " + z2t + " 30분 가볍게", m: meta };
+  }
+  /* 4. 목표까지 얼마 안 남았으면 → 그만큼만 가볍게 */
+  if (remain <= 40){
+    return { cls:"", ic:"🎯",
+      t:"150분까지 " + remain + "분, 존2 " + z2t + " " + (remain <= 20 ? 20 : 30) + "분이면 채워요", m: meta };
+  }
+  /* 5. 힘든 구간이 많은 경우(80:20 → 고강도 20% 초과) → 존2 회복주 */
+  if (highPct > 30){
+    return { cls:"", ic:"🏃",
+      t:"오늘은 존2 " + z2t + "로 30~40분 — 힘든 구간 " + highPct + "%, 가볍게 가는 날", m: meta };
+  }
+  /* 6. 그 밖에는 지금 균형을 이어 가는 처방 */
+  return { cls:"done", ic:"🏃",
+    t:"균형 좋아요, 존2 " + z2t + " 30분으로 이번 주 " + remain + "분 채우기", m: meta };
+}
+
+function coachCard(){
+  var tip = nextTip();
+  return '<div class="coach ' + tip.cls + '">' +
+    '<div class="ci">' + tip.ic + '</div>' +
+    '<div class="cb">' +
+      '<div class="ck">다음 운동 한 줄 처방</div>' +
+      '<div class="ct">' + tip.t + '</div>' +
+      '<div class="cm">' + tip.m + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
 function renderSummary(){
   var restNow = D.resting.now, restBase = D.resting.firstWeek, restDrop = restBase - restNow;
   var vo2 = D.vo2max.current, vo2Base = D.vo2max.history[0].v;
@@ -868,6 +988,7 @@ function renderSummary(){
     (acsm ? " · ACSM " + acsm + " " + (acsmOk ? "Excellent" : "Good 이하") : "");
 
   var html =
+    coachCard() +
     '<div class="sec-h">지금 우선순위 3가지</div>' +
     sigCard(s1, "🔥", "지방·혈관 태우기", b1,
       lowPct + '<i>%</i>', "가벼운 구간(존1~2) 비중", "목표 70~80%", d1) +
@@ -1495,6 +1616,137 @@ function storedData(){
 }
 function storedUrl(){ return lsGet(URL_KEY) || ""; }
 
+/* =========================================================
+   11. 데이터 소실 방지 — 타임머신 스냅샷 · 줄어듦 확인
+   ---------------------------------------------------------
+   · 불러오기·시트 동기화·지우기처럼 기기 기록을 덮어쓰는 순간 전에
+     지금 상태를 hc_snaps_v1 에 최대 5개까지 남깁니다(수동 저장도 가능).
+   · 들어오는 데이터의 운동·일일 건강 건수가 지금보다 적으면
+     건수를 보여 주며 확인을 받은 뒤에만 바꿉니다.
+   ========================================================= */
+var SNAP_KEY = "hc_snaps_v1";
+var SNAP_MAX = 5;
+
+function snapsGet(){
+  try {
+    var a = JSON.parse(lsGet(SNAP_KEY) || "[]");
+    return Object.prototype.toString.call(a) === "[object Array]" ? a.filter(function(s){ return s && s.data; }) : [];
+  } catch(e){ return []; }
+}
+function snapsSave(list){ return lsSet(SNAP_KEY, JSON.stringify(list.slice(0, SNAP_MAX))); }
+function snapCounts(d){
+  return {
+    acts: (d && d.activities ? d.activities.length : 0),
+    days: (d && d.health ? d.health.length : 0),
+    to: (d && d.dataTo) || ""
+  };
+}
+function snapWhen(iso){
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return "-";
+  var p = function(n){ return (n < 10 ? "0" : "") + n; };
+  return (d.getMonth() + 1) + "/" + d.getDate() + " " + p(d.getHours()) + ":" + p(d.getMinutes());
+}
+
+/* 지금 화면의 데이터를 스냅샷으로 남깁니다. 같은 내용이 이미 맨 앞에 있으면 중복을 만들지 않습니다. */
+function takeSnapshot(tag){
+  if (!D) return null;
+  var c = snapCounts(D), list = snapsGet();
+  if (list.length && list[0].to === c.to && list[0].acts === c.acts && list[0].days === c.days &&
+      JSON.stringify(list[0].data) === JSON.stringify(D)){
+    list[0].at = new Date().toISOString();
+    list[0].tag = tag || list[0].tag;
+    snapsSave(list);
+    return list[0];
+  }
+  var entry = { at: new Date().toISOString(), tag: tag || "수동", acts: c.acts, days: c.days, to: c.to, data: D };
+  list.unshift(entry);
+  return snapsSave(list) ? entry : null;
+}
+
+function renderSnaps(){
+  var box = $("stSnaps");
+  if (!box) return;
+  var list = snapsGet();
+  if (!list.length){
+    box.innerHTML = '<div class="none">아직 스냅샷이 없어요. 불러오기 전에는 자동으로 남습니다.</div>';
+    return;
+  }
+  box.innerHTML = list.map(function(s, i){
+    return '<div class="snap"><div class="sd"><b>' + snapWhen(s.at) + ' · ' + esc(s.tag || "수동") + '</b>' +
+      '<span>운동 ' + (s.acts || 0) + '건 · 일일 건강 ' + (s.days || 0) + '일 · ' + esc(s.to || "-") + ' 기준</span></div>' +
+      '<button data-snap="' + i + '">복원</button></div>';
+  }).join("");
+  Array.prototype.forEach.call(box.querySelectorAll("button[data-snap]"), function(b){
+    b.onclick = function(){ restoreSnap(+b.getAttribute("data-snap")); };
+  });
+}
+
+/* 복원도 되돌릴 수 있도록, 되돌리기 직전 상태를 먼저 스냅샷으로 남깁니다. */
+function restoreSnap(i){
+  var s = snapsGet()[i];
+  if (!s || !s.data){ setSts("stSts", "이 스냅샷을 찾지 못했어요.", "err"); return; }
+  var c = snapCounts(s.data);
+  if (!window.confirm("이 스냅샷으로 되돌릴까요?\n" + snapWhen(s.at) + " · " + (s.tag || "수동") +
+      "\n운동 " + c.acts + "건 · 일일 건강 " + c.days + "일 (" + c.to + " 기준)\n\n지금 화면의 기록은 자동으로 스냅샷에 남겨 둡니다.")) return;
+  takeSnapshot("복원 전");
+  var err = applyData(s.data);
+  refreshSetInfo();
+  renderSnaps();
+  if (err){ setSts("stSts", err, "err"); return; }
+  setSts("stSts", "스냅샷으로 되돌렸어요 · 운동 " + D.activities.length + "건 · " + D.dataTo + " 기준", "ok");
+  toast("이전 상태로 되돌렸어요");
+}
+
+/* 들어오는 데이터가 지금보다 적은지 비교합니다(기준일이 더 이전인 경우도 포함). */
+function shrinkInfo(next){
+  var cur = D || storedData();
+  if (!cur) return null;
+  var a = snapCounts(cur), b = snapCounts(next), lines = [];
+  if (b.acts < a.acts) lines.push({ k:"운동 기록", from:a.acts, to:b.acts, unit:"건" });
+  if (b.days < a.days) lines.push({ k:"일일 건강", from:a.days, to:b.days, unit:"일" });
+  if (b.to && a.to && b.to < a.to) lines.push({ k:"기준일", from:a.to, to:b.to, unit:"", date:true });
+  return lines.length ? { lines:lines } : null;
+}
+
+var PEND = null;
+function askOverwrite(loss, source, d, done){
+  PEND = { d:d, source:source, done:done };
+  var rows = loss.lines.map(function(l){
+    return '<div class="gc"><span>' + l.k + '</span><span>현재 ' + l.from + (l.unit || "") +
+      ' <i>→</i> 불러올 데이터 ' + l.to + (l.unit || "") + '</span></div>';
+  }).join("");
+  $("gdBody").innerHTML =
+    '<div class="gl">' + (source === "시트" ? "시트" : "파일") + '의 기록이 지금보다 적어요. 그대로 바꾸면 이 기기의 기록이 줄어듭니다.</div>' +
+    rows +
+    '<div class="gn">바꾸기 전에 지금 상태를 스냅샷(최근 5개)에 저장해 두므로, ⚙ 데이터 설정에서 되돌릴 수 있어요.</div>';
+  $("gdSheet").classList.add("on");
+  $("gdSheet").setAttribute("aria-hidden", "false");
+  document.body.style.overflow = "hidden";
+}
+function closeGuard(){
+  $("gdSheet").classList.remove("on");
+  $("gdSheet").setAttribute("aria-hidden", "true");
+  document.body.style.overflow = "";
+}
+
+function commitIncoming(d, source, done){
+  if (!(D && JSON.stringify(d) === JSON.stringify(D))) takeSnapshot(source + " 불러오기 전");
+  var err = applyData(d);
+  if (err){ done({ ok:false, msg:err }); return; }
+  done({ ok:true, source:source });
+}
+
+/* 파일·시트에서 온 데이터를 적용하는 유일한 길목 — 여기서 스냅샷과 줄어듦 확인을 겁니다. */
+function applyIncoming(raw, source, done){
+  var d = unwrapData(raw);
+  var err = checkData(d);
+  if (err){ done({ ok:false, msg:err }); return; }
+  var loss = shrinkInfo(d);
+  if (loss){ askOverwrite(loss, source, d, done); return; }
+  commitIncoming(d, source, done);
+}
+
 function setSts(id, msg, tone){
   var el = $(id);
   if (!el){ if (msg) toast(msg); return; }
@@ -1603,12 +1855,13 @@ function readJsonFile(file, done){
   fr.onload = function(){
     var d;
     try { d = JSON.parse(String(fr.result)); }
-    catch(e){ done("JSON 파일을 읽지 못했어요. 파일이 손상되지 않았는지 확인해 주세요.", "err"); return; }
-    var err = applyData(d);
-    if (err){ done(err, "err"); return; }
-    done("불러왔어요 · 운동 " + D.activities.length + "건 · " + D.dataTo + " 기준", "ok");
+    catch(e){ done({ ok:false, msg:"JSON 파일을 읽지 못했어요. 파일이 손상되지 않았는지 확인해 주세요." }); return; }
+    applyIncoming(d, "JSON", function(res){
+      if (!res.ok){ done(res); return; }
+      done({ ok:true, msg:"불러왔어요 · 운동 " + D.activities.length + "건 · " + D.dataTo + " 기준" });
+    });
   };
-  fr.onerror = function(){ done("파일을 읽지 못했어요.", "err"); };
+  fr.onerror = function(){ done({ ok:false, msg:"파일을 읽지 못했어요." }); };
   fr.readAsText(file, "utf-8");
 }
 
@@ -1641,10 +1894,11 @@ function syncSheet(url, done){
   var target = url + sep + "t=" + Date.now();
 
   var finish = function(d, err){
-    if (err){ done(err.message || "불러오지 못했어요.", "err"); return; }
-    var msg = applyData(d);
-    if (msg){ done(msg, "err"); return; }
-    done("시트에서 새 기록을 받았어요 · " + D.dataTo + " 기준", "ok");
+    if (err){ done({ ok:false, msg:(err.message || "불러오지 못했어요.") }); return; }
+    applyIncoming(d, "시트", function(res){
+      if (!res.ok){ done(res); return; }
+      done({ ok:true, msg:"시트에서 새 기록을 받았어요 · " + D.dataTo + " 기준" });
+    });
   };
 
   /* Apps Script 웹 앱은 CORS 헤더가 없어 fetch 가 막히거나 늘어지므로 JSONP 로 바로 받습니다. */
@@ -1678,6 +1932,11 @@ function syncSheet(url, done){
 
 function wireImport(prefix){
   var fb = $(prefix + "FileBtn"), fi = $(prefix + "File"), sy = $(prefix + "Sync"), st = prefix + "Sts";
+  function settle(res){
+    if (res.cancel){ setSts(st, "불러오기를 취소했어요. 지금 기록은 그대로예요.", ""); return; }
+    setSts(st, res.msg, res.ok ? "ok" : "err");
+    if (res.ok) toast(res.msg);
+  }
   if (fb && fi){
     fb.onclick = function(){ fi.click(); };
     fi.onchange = function(){
@@ -1685,17 +1944,16 @@ function wireImport(prefix){
       this.value = "";
       if (!f) return;
       setSts(st, "파일을 읽는 중…");
-      readJsonFile(f, function(msg, tone){ setSts(st, msg, tone); if (tone === "ok") toast(msg); });
+      readJsonFile(f, settle);
     };
   }
   if (sy){
     sy.onclick = function(){
       sy.disabled = true;
       setSts(st, "시트에서 받는 중…");
-      syncSheet($(prefix + "Url").value, function(msg, tone){
+      syncSheet($(prefix + "Url").value, function(res){
         sy.disabled = false;
-        setSts(st, msg, tone);
-        if (tone === "ok") toast(msg);
+        settle(res);
       });
     };
   }
@@ -1704,7 +1962,8 @@ function wireImport(prefix){
 /* ---------- 데이터 설정 시트 ---------- */
 function refreshSetInfo(){
   var box = $("stInfo");
-  if (!D){ box.innerHTML = "<div>아직 불러온 데이터가 없어요.</div>"; return; }
+  renderSnaps();
+  if (!D){ box.innerHTML = "<div>아직 불러온 데이터가 없어요. 스냅샷이 있으면 아래에서 되돌릴 수 있어요.</div>"; return; }
   box.innerHTML =
     "<div>마지막 업데이트 " + esc(String(D.updated || "-")) + " · 운동 " + D.activities.length + "건</div>" +
     "<div>" + fmtMD(D.dataFrom) + " ~ " + fmtMD(D.dataTo) + " · 일일 건강 " + D.health.length + "일 · 주별 " + D.weekly.length + "주</div>" +
@@ -1736,18 +1995,49 @@ function wireSettings(){
     setSts("stSts", "JSON 파일로 내려받았어요. 다른 기기에서도 이 파일로 불러올 수 있어요.", "ok");
   };
   $("stClear").onclick = function(){
-    if (!window.confirm("이 기기에 저장된 건강 기록을 지울까요?\n지운 뒤에는 JSON 파일이나 시트 주소로 다시 불러와야 합니다.")) return;
+    if (!D){ setSts("stSts", "이 기기에 저장된 기록이 없어요.", "err"); return; }
+    if (!window.confirm("이 기기에 저장된 건강 기록을 지울까요?\n지우기 전 상태는 스냅샷(최근 5개)에 남겨 두어 되돌릴 수 있어요.")) return;
+    var s = takeSnapshot("지우기 전");
     lsDel(DATA_KEY);
     closeSet();
-    showSetup("저장된 기록을 지웠어요. JSON 파일이나 시트 주소로 다시 불러올 수 있어요.", "ok");
+    showSetup((s ? "저장된 기록을 지웠어요. " + snapWhen(s.at) + " 스냅샷에서 되돌릴 수 있어요."
+                 : "저장된 기록을 지웠어요. JSON 파일이나 시트 주소로 다시 불러와 주세요."), "ok");
   };
+  $("stSnap").onclick = function(){
+    if (!D){ setSts("stSts", "저장할 기록이 없어요. 먼저 JSON 파일이나 시트로 불러와 주세요.", "err"); return; }
+    var s = takeSnapshot("수동");
+    renderSnaps();
+    if (!s){ setSts("stSts", "스냅샷을 저장하지 못했어요(브라우저 저장 공간 부족).", "err"); return; }
+    setSts("stSts", "스냅샷을 저장했어요 · " + snapWhen(s.at) + " · 운동 " + s.acts + "건 · 최근 5개까지 보관", "ok");
+    toast("스냅샷을 저장했어요");
+  };
+
+  /* 줄어든 데이터 확인 패널 — 확인해야만 바꿉니다. */
+  $("gdYes").onclick = function(){
+    var p = PEND;
+    PEND = null;
+    closeGuard();
+    if (!p) return;
+    commitIncoming(p.d, p.source, p.done);
+  };
+  $("gdNo").onclick = function(){
+    var p = PEND;
+    PEND = null;
+    closeGuard();
+    if (p && p.done) p.done({ cancel:true });
+  };
+  $("gdSheet").addEventListener("click", function(e){ if (e.target === $("gdSheet")) $("gdNo").click(); });
 }
 
 function boot(){
   $("bakOpen").onclick = openBak;
   $("bkClose").onclick = closeBak;
   $("bkSheet").addEventListener("click", function(e){ if (e.target === $("bkSheet")) closeBak(); });
-  document.addEventListener("keydown", function(e){ if (e.key === "Escape"){ closeBak(); closeSet(); } });
+  document.addEventListener("keydown", function(e){
+    if (e.key !== "Escape") return;
+    if ($("gdSheet").classList.contains("on")){ $("gdNo").click(); return; }
+    closeBak(); closeSet();
+  });
   $("instBtn").onclick = function(){
     var ev = INST.ev;
     if (!ev) return;
