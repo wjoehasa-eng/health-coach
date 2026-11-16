@@ -1935,7 +1935,7 @@ function wireImport(prefix){
   function settle(res){
     if (res.cancel){ setSts(st, "불러오기를 취소했어요. 지금 기록은 그대로예요.", ""); return; }
     setSts(st, res.msg, res.ok ? "ok" : "err");
-    if (res.ok) toast(res.msg);
+    if (res.ok){ refreshSetInfo(); toast(res.msg); }
   }
   if (fb && fi){
     fb.onclick = function(){ fi.click(); };
