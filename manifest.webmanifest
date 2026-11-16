@@ -1,0 +1,33 @@
+{
+  "id": "/health-coach/",
+  "name": "내 심장·혈관 건강 대시보드",
+  "short_name": "건강코치",
+  "description": "가민 워치 기록을 달력·추이·비중·기록으로 보는 개인용 건강 대시보드",
+  "start_url": "/health-coach/",
+  "scope": "/health-coach/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F8FA",
+  "theme_color": "#F7F8FA",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
