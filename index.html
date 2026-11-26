@@ -456,6 +456,7 @@
              placeholder="https://script.google.com/macros/s/.../exec">
       <div class="strow">
         <button class="btn" id="stSync">저장하고 새로 불러오기</button>
+        <button class="btn ghost" id="stCopyLink">이 페이지 링크 복사</button>
       </div>
       <div class="stlbl">지금 데이터</div>
       <div class="strow">
@@ -1585,6 +1586,49 @@ function lsGet(k){ try { return window.localStorage.getItem(k); } catch(e){ retu
 function lsSet(k, v){ try { window.localStorage.setItem(k, v); return true; } catch(e){ return false; } }
 function lsDel(k){ try { window.localStorage.removeItem(k); } catch(e){} }
 
+/* ---------- #s= 자동 연결 (공용 PC에서도 주소 한 줄로 시트 연결) ---------- */
+function b64e(s){
+  try { return btoa(unescape(encodeURIComponent(String(s == null ? "" : s))))
+    .replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+  catch(e){ return ""; }
+}
+function b64d(s){
+  try {
+    var t = String(s || "").replace(/-/g,"+").replace(/_/g,"/");
+    while (t.length % 4) t += "=";
+    return decodeURIComponent(escape(atob(t)));
+  } catch(e){ return ""; }
+}
+function readConnHash(){
+  var m = String(location.hash || "").match(/[#&]s=([^&]+)/);
+  if (!m) return "";
+  var raw = "";
+  try { raw = decodeURIComponent(m[1]); } catch(e){ raw = m[1]; }
+  var v = b64d(raw);
+  if (!/^https?:\/\//i.test(v) && /^https?:\/\//i.test(raw)) v = raw;
+  return /^https?:\/\//i.test(v) ? v : "";
+}
+/* 페이지를 열 때 #s= 링크가 있으면 주소를 이 기기에 저장하고 해시는 지운다. */
+function applyConnHash(){
+  var u = readConnHash();
+  if (!u) return false;
+  lsSet(URL_KEY, u);
+  try { history.replaceState(null, "", location.pathname + location.search); } catch(e){}
+  return true;
+}
+function pageLink(url){
+  return location.origin + location.pathname + "#s=" + b64e(url);
+}
+function copyPageLink(stId){
+  var u = storedUrl();
+  if (!/^https:\/\//i.test(u)) { setSts(stId, "시트 주소를 먼저 저장해 주세요.", "err"); return; }
+  var link = pageLink(u);
+  function done(){ setSts(stId, "이 페이지 링크를 복사했어요. 즐겨찾기에 넣어 두면 공용 PC에서도 한 번에 연결됩니다.", "ok"); toast("링크를 복사했어요"); }
+  function fallback(){ try { window.prompt("아래 링크를 복사하세요", link); } catch(e){} }
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(done, fallback);
+  else fallback();
+}
+
 /* 시트/파일이 감싼 형태({ok,data})로 와도 안쪽 데이터를 꺼냅니다. */
 function unwrapData(raw){
   if (!raw || typeof raw !== "object") return raw;
@@ -1819,6 +1863,7 @@ function showSetup(msg, tone){
         '<p class="steps">Apps Script 웹 앱 주소를 넣으면 시트를 고칠 때마다 새 기록을 받아옵니다.</p>' +
         '<input class="inp" id="suUrl" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/.../exec">' +
         '<button class="btn ghost" id="suSync">저장하고 불러오기</button>' +
+        '<button class="btn ghost" id="suCopyLink">이 페이지 링크 복사</button>' +
       '</div>' +
       '<div class="sts" id="suSts"></div>' +
     '</div>' +
@@ -1829,6 +1874,7 @@ function showSetup(msg, tone){
   $("bkmeta").textContent = "아직 불러온 데이터가 없어요";
   wireImport("su");
   $("suUrl").value = storedUrl();
+  if ($("suCopyLink")) $("suCopyLink").onclick = function(){ copyPageLink("suSts"); };
   if (msg) setSts("suSts", msg, tone);
 }
 
@@ -2039,6 +2085,7 @@ function wireSettings(){
   $("stClose").onclick = closeSet;
   $("stSheet").addEventListener("click", function(e){ if (e.target === $("stSheet")) closeSet(); });
   wireImport("st");
+  $("stCopyLink").onclick = function(){ copyPageLink("stSts"); };
   $("stExport").onclick = function(){
     if (!D){ setSts("stSts", "내려받을 데이터가 없어요.", "err"); return; }
     download("health-data-" + D.dataTo + ".json", JSON.stringify(D, null, 1), "application/json");
@@ -2098,6 +2145,9 @@ function boot(){
   };
   refreshInstall();
   wireSettings();
+
+  /* #s= 링크로 열렸으면 주소를 저장하고 바로 시트와 맞춘다. */
+  applyConnHash();
 
   var d = storedData();
   if (d){
