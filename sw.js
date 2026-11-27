@@ -5,7 +5,7 @@
    - 건강 기록(data.json)은 저장소에 없고 기기(localStorage)에만 있으므로
      미리 캐시할 데이터 파일이 없다. */
 
-const CACHE = 'health-coach-v4';
+const CACHE = 'health-coach-v5';
 const SCOPE_PATH = new URL('./', self.location).pathname; // /health-coach/
 const ASSETS = [
   './',
